@@ -6,8 +6,6 @@ class PoliticDataLoader(DataLoader):
         """Load political data and return a list of PoliticPartyFeatures objects."""
         data = DataLoader.load_data(file_path)
         political_party_features_list = []
-        rows=data.itertuples()
-
         rows = data.to_dict(orient='records')
         i=0
         while i<len(data):
