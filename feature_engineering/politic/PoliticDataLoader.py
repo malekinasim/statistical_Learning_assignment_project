@@ -1,30 +1,59 @@
 from utils.DataLoader import DataLoader
 from feature_engineering.politic.PartyFeatures import PoliticPartyFeatures
+import pandas as pd
+
 class PoliticDataLoader(DataLoader):
+
     @staticmethod
-    def load_political_data(file_path):
-        """Load political data and return a list of PoliticPartyFeatures objects."""
+    def __expand_rows(df):
+        new_rows = []
+        for row in df.to_dict(orient='records'):
+            base_year = int(row['Election Year'])
+            for add in range(1, 4):
+                if (base_year + add) > 2024:
+                    break
+                new_row = row.copy()
+                new_row['Election Year'] = base_year + add
+                new_rows.append(new_row)
+        
+        new_rows_df = pd.DataFrame(new_rows)
+        combined_df = pd.concat([df, new_rows_df], ignore_index=True)
+        combined_df = combined_df.sort_values(by=['Municipality', 'Election Year']).reset_index(drop=True)
+        return combined_df
+
+    @staticmethod
+    def load_political_data_main(file_path):
         data = DataLoader.load_data(file_path)
+        data['Municipality'].ffill(inplace=True)
+
+        # Split Municipality into Code and Name
+        data[['Code', 'Municipality']] = data['Municipality'].str.split(' ', n=1, expand=True)
+
+        # Expand years
+        data = PoliticDataLoader.__expand_rows(data)
+
+        # Extract party columns by excluding known columns
+        known_cols = {'Code', 'Municipality', 'Election Year'}
+        party_columns = [col for col in data.columns if col not in known_cols]
+
         political_party_features_list = []
-        rows = data.to_dict(orient='records')
-        i=0
-        while i<len(data):
-            row=rows[i]
+
+        for row in data.to_dict(orient='records'):
             municipality = row['Municipality']
-            total_seats_count=0
+            election_year = row['Election Year']
+            total_seats_count = sum(row[party] for party in party_columns)
             
-            k=0
-            while k<3:
-                row=rows[i+k]
-                election_year =row['Election Year'] 
-                total_seats_count=sum(row[party_name] for party_name in data.columns[2:])
-                for party_name in data.columns[2:]:
-                    seats_count = row[party_name] 
-                    j=0
-                    while j<4:
-                        party = PoliticPartyFeatures(election_year+j,municipality,party_name, seats_count, total_seats_count)
-                        political_party_features_list.append(party)
-                        j+=1
-                k+=1
-            i+=3
-        return political_party_features_list
+            for party_name in party_columns:
+                seats_count = row[party_name]
+                party = PoliticPartyFeatures(election_year, municipality, party_name, seats_count, total_seats_count)
+                political_party_features_list.append(party)
+
+        df = DataLoader.to_dataFrame(political_party_features_list)
+
+        # Pivot
+        df_wide = df.pivot(index=['Municipality', 'Year'], columns='Name', values='Seats_percentage').reset_index()
+
+        # Flatten MultiIndex columns
+        df_wide.columns = ['_'.join(col).strip('_') if isinstance(col, tuple) else col for col in df_wide.columns]
+
+        return df_wide

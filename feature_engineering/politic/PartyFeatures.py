@@ -1,5 +1,6 @@
+
 class PoliticPartyFeatures:
-    def __init__(self, year,municipality,name, seats_count,total_seats_count):
+    def __init__(self, year:int,municipality:str,name:str, seats_count:int,total_seats_count:int):
         self.__year=year
         self.__municipality=municipality
         self.__name = name 
@@ -18,5 +19,10 @@ class PoliticPartyFeatures:
         return self.__year
     def get_municipality(self):
         return self.__municipality
-    def __str__(self):  
-        return f"Year: {self.__year}, Municipality: {self.__municipality}, Party: {self.__name}, Seats Count: {self.__seats_count}, Seats Percentage: {self.__seats_percentage}"
+    def to_dict(self):   
+        return {
+            'Year': self.__year,
+            'Municipality': self.__municipality,
+            'Name': self.__name,
+            'Seats_percentage': self.__seats_percentage
+        }
