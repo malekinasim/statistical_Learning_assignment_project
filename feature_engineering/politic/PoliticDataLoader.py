@@ -10,7 +10,7 @@ class PoliticDataLoader(DataLoader):
         for row in df.to_dict(orient='records'):
             base_year = int(row['Election Year'])
             for add in range(1, 4):
-                if (base_year + add) > 2024:
+                if (base_year + add) > 2023:
                     break
                 new_row = row.copy()
                 new_row['Election Year'] = base_year + add
@@ -33,7 +33,9 @@ class PoliticDataLoader(DataLoader):
         data = PoliticDataLoader.__expand_rows(data)
 
         # Extract party columns by excluding known columns
-        known_cols = {'Code', 'Municipality', 'Election Year'}
+        # remove Other Parties column for removing Correlation between parties because increasing one party will decrease the other parties
+        # and this will cause the correlation between them invalid regression Model
+        known_cols = {'Code', 'Municipality', 'Election Year','Other Parties'}
         party_columns = [col for col in data.columns if col not in known_cols]
 
         political_party_features_list = []

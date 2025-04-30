@@ -8,7 +8,7 @@ class PoliticPartyFeatures:
         self.__seats_percentage =self.__calculate_percentage(total_seats_count)
     
     def __calculate_percentage(self, total_seats):
-        return round(self.__seats_count / total_seats,2) * 100
+        return round(self.__seats_count / total_seats * 100,2)
     def get_name(self):
         return self.__name
     def get_seats_count(self):

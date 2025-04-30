@@ -18,6 +18,8 @@ class MathGradeResultLoader(DataLoader):
         data['Year'] = data['Year'].astype(int)
         features_list=[]
         for row in data.to_dict(orient='records'):
+            if(row['Year']>2023):
+                continue
             grade_rate = MathGradeResult(
                 year=row['Year'],
                 municipality=row['Municipality'],
