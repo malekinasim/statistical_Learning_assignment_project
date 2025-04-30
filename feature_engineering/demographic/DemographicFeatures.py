@@ -42,7 +42,5 @@ class DemographicFeatures:
             'Year': self.__year,
             'Municipality': self.__municipality,
             'Population': self.__population,
-            'Previous_population': self.__previous_population,
-            'Population_growth_rate': self.__population_growth_rate,
-            'Population_growth': self.__population_growth
+            'Population_growth_rate': self.__population_growth_rate
         }

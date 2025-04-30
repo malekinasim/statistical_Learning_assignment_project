@@ -23,6 +23,5 @@ class EconomicFeatures:
             'Year': self.__year,
             'Municipality': self.__municipality,
             'Average_income': self.__average_income,
-            'Income_inequality': self.__income_inequality,
-            'Median_income': self.__median_income
+            'Income_inequality': self.__income_inequality
         }

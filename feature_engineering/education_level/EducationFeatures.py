@@ -50,9 +50,6 @@ class EducationFeatures:
         return {
             "Year":self.__year,
             "Municipality":self.__municipality,
-            "Lower_education_count":self.__lower_education_count,
-            "Higher_education_count":self.__higher_education_count,
-            "Total_population":self.__total_population,
             "Lower_education_percentage":self.__lower_education_percentage,
             "Higher_education_percentage":self.__higher_education_percentage,
             "Higher_to_lower_education_ratio":self.__higher_to_lower_education_ratio

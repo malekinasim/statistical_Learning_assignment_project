@@ -9,6 +9,7 @@ import statsmodels.api as sm
 from statsmodels.stats.outliers_influence import variance_inflation_factor
 import matplotlib.pyplot as plt
 import seaborn
+import numpy as np
 
 def Merge_data(folder_path,file_name):
     file_path = 'data/Dalarna_MunicipalElectionResults.xlsx'  
@@ -51,15 +52,13 @@ def check_data_VIF(df):
 
 
 def show_correlation_matrix(df, image_path):
-    corr = df.corr().round(2)
-    print(corr)
     plt.figure(figsize=(10, 8))
+    corr = df.corr().round(2)
     seaborn.heatmap(corr, annot=True, cmap="coolwarm", fmt=".2f", square=True)
     plt.title("Correlation Matrix", fontsize=16)
     plt.tight_layout()
     plt.savefig(image_path, dpi=300)
     plt.close()
-    return corr
 
 def math_grade_rate_plot(df):
     graph = seaborn.FacetGrid(df, col="Municipality", hue="Municipality", col_wrap=2, height=4, aspect=1.5)
@@ -72,10 +71,23 @@ def show_correlation_pair_plot(df, image_path):
     plt.suptitle("Pairwise Relationships with Regression Diagnostics", y=1.02)
     plt.savefig(image_path, dpi=300)
     plt.close()
+    
+    
+def drop_highly_correlated_features(df, threshold=0.7):
+    corr = df.corr().round(2).abs()
+    dropped = set()
+    for i in corr.columns:
+        for j in corr.columns:
+            if(len(dropped)>len(corr.columns)-3):
+                break
+            if i!="Math_grade_rate_result" and j!="Math_grade_rate_result" and  i != j and corr.loc[i, j] > threshold:
+                dropped.add(j)
+    return df.drop(columns=dropped), list(dropped)
+
 def features_correlation_checking(df):
-    income_vars = ["Math_grade_rate_result", "Average_income", "Income_inequality", "Median_income"]
-    pop_vars = ["Math_grade_rate_result", "Population", "Population_growth", "Population_growth_rate"]
-    edu_vars = ["Math_grade_rate_result", "Higher_education_count","Lower_education_count", "Lower_education_percentage", "Higher_education_percentage","Higher_to_lower_education_ratio"]
+    income_vars = ["Math_grade_rate_result", "Average_income", "Income_inequality"]
+    pop_vars = ["Math_grade_rate_result","Population_growth_rate", "Population"]
+    edu_vars = ["Math_grade_rate_result", "Higher_education_percentage", "Lower_education_percentage", "Higher_to_lower_education_ratio"]
 
     show_correlation_matrix(df[income_vars], "data/correlation_matrix_income.png")
     show_correlation_pair_plot(df[income_vars], "data/correlation_plot_income.png")
@@ -83,33 +95,21 @@ def features_correlation_checking(df):
     show_correlation_matrix(df[pop_vars], "data/correlation_matrix_population.png")
     show_correlation_pair_plot(df[pop_vars], "data/correlation_plot_population.png")
     
-    show_correlation_matrix(df[edu_vars], "data/correlation_plot_education.png")
+    show_correlation_matrix(df[edu_vars], "data/correlation_matrix_education.png")
     show_correlation_pair_plot(df[edu_vars], "data/correlation_plot_education.png")
     
-    selected_features=["Year","Municipality",
-            "Math_grade_rate_result",
-            "Average_income",
-            "Population",
-            "Population_growth_rate",
-            "Higher_education_percentage",
-            "The Centre Party","The Christian Democratic Party",
-            "The Green Party", "The Left Party",	
-            "The Liberal Party","The Moderate Party",
-            "The Social Democratic Party","The Sweden Democrats"
-            ]
+    income_df, income_dropped = drop_highly_correlated_features(df[income_vars])
+    pop_df, pop_dropped = drop_highly_correlated_features(df[pop_vars])
+    edu_df, edu_dropped = drop_highly_correlated_features(df[edu_vars])
+    selected_features=[col for col in  df.columns if col not in income_dropped and col not in pop_dropped and col not in edu_dropped ]
     return selected_features
 
 def main():
     df=Merge_data('data/','merged_data.csv')
-
     math_grade_rate_plot(df)
-    features_correlation_checking(df)
-    
-    
-    dummy_df = pd.get_dummies(df, columns=['Municipality','Year'], drop_first=True)
-    
-    
-    
+    selected_features=features_correlation_checking(df)
+    not_correlated_df=df[selected_features]
+    dummy_df= pd.get_dummies(not_correlated_df, columns=['Municipality','Year'], drop_first=True)
     #check_data_VIF(dummy_df) 
 
 
