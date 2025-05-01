@@ -35,7 +35,7 @@ class PoliticDataLoader(DataLoader):
         # Extract party columns by excluding known columns
         # remove Other Parties column for removing Correlation between parties because increasing one party will decrease the other parties
         # and this will cause the correlation between them invalid regression Model
-        known_cols = {'Code', 'Municipality', 'Election Year','Other Parties'}
+        known_cols = {'Code', 'Municipality', 'Election Year'}
         party_columns = [col for col in data.columns if col not in known_cols]
 
         political_party_features_list = []
