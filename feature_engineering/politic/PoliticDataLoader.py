@@ -55,7 +55,18 @@ class PoliticDataLoader(DataLoader):
         # Pivot
         df_wide = df.pivot(index=['Municipality', 'Year'], columns='Name', values='Seats_percentage').reset_index()
 
+        left_parties = ['The Green Party', 'The Social Democratic Party', 'The Left Party']
+        right_parties = ['The Moderate Party', 'The Christian Democratic Party', 'The Sweden Democrats']
+
+        
+        df_wide['Left_share'] = df_wide[left_parties].sum(axis=1)
+        df_wide['Right_share'] = df_wide[right_parties].sum(axis=1)
+
+
+        df_wide['Left_minus_Right'] = df_wide['Left_share'] - df_wide['Right_share']
+
         # Flatten MultiIndex columns
         df_wide.columns = ['_'.join(col).strip('_') if isinstance(col, tuple) else col for col in df_wide.columns]
 
-        return df_wide
+        return df_wide[['Municipality', 'Year', 'Left_share', 'Right_share', 'Left_minus_Right']]
+
