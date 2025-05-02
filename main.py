@@ -9,11 +9,11 @@ import pandas as pd
     
 def main():
     # 1. Load data
-    if(not os.path.exists("results/data/merged_data.csv")):
+    if(not os.path.exists("results/data/cleaned_data.csv")):
        load_clean_data()
     df=read_csv_file("results/data/cleaned_data.csv")
   
-    Model analysis 
+    #Model analysis 
     exclude_features = ['Year', 'Municipality', 'Math_grade_rate_result']
     features = [col for col in df.columns if col not in exclude_features ]
     X=df[features].astype(float)

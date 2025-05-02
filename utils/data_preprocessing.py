@@ -64,5 +64,4 @@ def process_highly_correlated_features(df,exclude_features,corr_threshold=0.6, v
         df[[col for col in keep_features if col not in exclude_features]],vif_threshold))
     
     selected_features = [col for col in df.columns if col not in dropped_features]
-    selected_features.extend(exclude_features)
     return selected_features, dropped_features,df[selected_features]
