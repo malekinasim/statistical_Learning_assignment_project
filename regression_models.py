@@ -8,8 +8,15 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import numpy as np
 import statsmodels.api as sm
+import matplotlib.pyplot as plt
+from utils.FileUtil import write_df_to_csv
 
-def model_diagnostics(model, X, plot_name):
+def calculate_vif(X):
+    vif_data = pd.DataFrame()
+    vif_data["feature"] = X.columns
+    vif_data["VIF"] = [variance_inflation_factor(X.values, i) for i in range(X.shape[1])]
+    return vif_data
+def model_diagnostics(model,  plot_name):
     # Residuals
     try:
         residuals = model.resid
@@ -20,13 +27,13 @@ def model_diagnostics(model, X, plot_name):
     
     # Residuals distribution
     sns.histplot(residuals, kde=True)
-    plt.title('Residuals Distribution')
+    plt.title(f'Residuals Distribution for {plot_name}')
     plt.savefig(f"results/plot/{plot_name}_residuals_distribution.png", dpi=500) 
     plt.close()
 
     # Residuals vs Fitted Values plot
     plt.scatter(fitted_values, residuals)
-    plt.title('Residuals vs Fitted Values')
+    plt.title(f'Residuals vs Fitted Values for {plot_name}')
     plt.xlabel('Fitted Values')
     plt.ylabel('Residuals')
     plt.savefig(f"results/plot/{plot_name}_Residuals vs Fitted Values.png", dpi=500) 
@@ -36,18 +43,25 @@ def model_diagnostics(model, X, plot_name):
     if hasattr(model, "get_influence"): 
         fig, ax = plt.subplots(figsize=(8, 6))
         sm.graphics.influence_plot(model, ax=ax, criterion="cooks")
-        plt.title("Residuals vs Leverage")
+        plt.title(f"Residuals vs Leverage for {plot_name}")
         plt.savefig(f"data/{plot_name}_Residuals vs leverage.png", dpi=500)
         plt.close()
     else:   
         plt.scatter(fitted_values, residuals)
-        plt.title("Residuals vs Fitted Values (Panel Model)")
+        plt.title(f"Residuals vs Fitted Values (Panel Model) for {plot_name}")
         plt.xlabel("Fitted Values")
         plt.ylabel("Residuals")
         plt.axhline(0, color='red', linestyle='--')
         plt.savefig(f"results/plot/{plot_name}_residuals_vs_fitted_panel.png", dpi=500)
         plt.close()
-        
+    X = pd.DataFrame(model.model.exog, columns=model.model.exog_names)
+    
+   
+    vif_data=calculate_vif(X)
+   
+    #write_df_to_csv(vif_data, f"results/plot/{plot_name}_VIF.csv")
+ 
+    print(vif_data)    
     
     
     
@@ -61,7 +75,48 @@ def OLS_full_model(X, y):
     # Fit OLS regression model
     model = sm.OLS(y, X).fit()    
     return model
-def OLS_backward_elimination(X, y, significance_level=0.25):
+
+
+# def OLS_backward_elimination(X, y, significance_level=0.25, vif_threshold=10.0):
+#     X = sm.add_constant(X)  
+#     model = sm.OLS(y, X).fit()
+    
+#     while True:
+#         # Step 1: P-value elimination
+#         pvalues = model.pvalues.drop("const", errors='ignore')
+#         max_p_value = pvalues.max()
+
+#         if max_p_value >= significance_level:
+#             excluded_feature = pvalues.idxmax()
+#             X_temp = X.drop(columns=[excluded_feature])
+#             new_model = sm.OLS(y, X_temp).fit()
+
+#             if new_model.rsquared_adj >= model.rsquared_adj:
+#                 print(f"Dropping '{excluded_feature}' due to high p-value = {max_p_value:.4f} (Adj R² improved: {model.rsquared_adj:.4f} → {new_model.rsquared_adj:.4f})")
+#                 X = X_temp
+#                 model = new_model
+#                 continue
+#             else:
+#                 print(f"Retained '{excluded_feature}' despite high p-value = {max_p_value:.4f} (Adj R² drop)")
+        
+#         # Step 2: VIF elimination
+#         vif = calculate_vif(X.drop(columns=["const"]))
+#         high_vif = vif[vif["VIF"] > vif_threshold]
+
+#         if not high_vif.empty:
+#             worst_vif_feature = high_vif.sort_values("VIF", ascending=False).iloc[0]["feature"]
+#             print(f"Dropping '{worst_vif_feature}' due to high VIF = {high_vif['VIF'].max():.2f}")
+#             X = X.drop(columns=[worst_vif_feature])
+#             model = sm.OLS(y, X).fit()
+#             continue
+        
+#         # If no features were dropped in either step, we're done
+#         break
+
+#     return model
+
+
+def OLS_backward_elimination(X, y, significance_level=0.1):
     X = sm.add_constant(X)  
     model = sm.OLS(y, X).fit()
     while True:
@@ -78,6 +133,7 @@ def OLS_backward_elimination(X, y, significance_level=0.25):
             model = new_model
             X= X_temp
         else:
+            
             print(f"Keeping {excluded_feature} with p-value = {max_p_value:.4f} because Adj R²: {model.rsquared_adj:.4f}")
             break
     return model
@@ -160,10 +216,8 @@ def random_effects_panel_backward_elimination(df, dep_var, features, entity, tim
         print("No features left to build a final model.")
         return None
 
-import matplotlib.pyplot as plt
-import seaborn as sns
 
-def plot_actual_vs_predicted(model, X, y, plot_name):
+def plot_actual_vs_predicted(model, y, plot_name):
     try:
      fitted_values = model.fittedvalues
     except AttributeError:
@@ -172,13 +226,26 @@ def plot_actual_vs_predicted(model, X, y, plot_name):
     plt.figure(figsize=(8, 6))
     plt.scatter(y, fitted_values, color='blue', label='Predicted vs Actual')
     plt.plot([min(y), max(y)], [min(y), max(y)], color='red', linestyle='--', label='Perfect Fit')  # خط مناسب
-    plt.title('Actual vs Predicted Values')
+    plt.title(f'Actual vs Predicted Values for {plot_name}')
     plt.xlabel('Actual Values')
     plt.ylabel('Predicted Values')
     plt.legend()
     plt.savefig(f"results/plot/{plot_name}_actual_vs_predicted.png", dpi=500)
     plt.show()
     
+    
+def hat_Value_plot(model,  plot_name):
+
+    hat_values = model.get_influence().hat_matrix_diag
+    plt.scatter(range(len(hat_values)), hat_values)
+    plt.axhline(y=2 * np.mean(hat_values), color='r', linestyle='--')
+    plt.title(f'Hat Value Plot for Logistic Regression for {plot_name}')
+    plt.xlabel('Observations')
+    plt.ylabel('Hat Values')
+    plt.savefig(f"results/plot/{plot_name}_hat_value_plot.png", dpi=500)
+    plt.show()
+
+
 
 
 
